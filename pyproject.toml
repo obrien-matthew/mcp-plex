@@ -1,0 +1,55 @@
+[project]
+name = "mcp-plex"
+version = "0.1.0"
+description = "MCP server for Plex media discovery, search, and library management"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Matthew O'Brien", email = "obrien.mlotwis@gmail.com" }
+]
+requires-python = ">=3.14"
+keywords = ["mcp", "plex", "media", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "mcp>=1.27.0,<2",
+    "plexapi>=4.16.0",
+]
+
+[project.urls]
+Repository = "https://github.com/obrien-matthew/mcp-plex"
+Issues = "https://github.com/obrien-matthew/mcp-plex/issues"
+
+[tool.uv.build-backend]
+module-name = "plex_mcp"
+
+[build-system]
+requires = ["uv_build>=0.11.3,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.0",
+    "pyright>=1.1.400",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+
+[project.scripts]
+mcp-plex = "plex_mcp:main"
