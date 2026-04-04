@@ -1,6 +1,6 @@
 # mcp-plex
 
-MCP server for Plex Media Server, focused on media discovery, search, and library management. 13 granular tools designed for use with Claude and other LLM agents.
+MCP server for Plex Media Server, focused on media discovery, search, library management, and playback control. 24 granular tools designed for use with Claude and other LLM agents.
 
 ## Prerequisites
 
@@ -108,13 +108,34 @@ Or if running from a local clone:
 | `get_seasons` | `rating_key` | List seasons for a TV show. |
 | `get_episodes` | `rating_key`, `season_number=0` | List episodes (all or by season). |
 
-### Collections & Playlists
+### Collections
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `get_collections` | `library_name` | List collections in a library. |
+| `get_collections` | `library_name` | List collections in a library (includes smart/regular type). |
+| `get_collection_items` | `rating_key` | Get collection details and all items it contains. |
+| `create_collection` | `library_name`, `title`, `rating_keys` | Create a regular collection from specific items. |
+| `create_smart_collection` | `library_name`, `title`, `filters`, `libtype=""`, `sort=""`, `limit=0` | Create a smart (filter-based) auto-updating collection. |
+| `edit_collection` | `rating_key`, `title=""`, `summary=None`, `sort_order=""`, `mode=""` | Edit collection metadata (title, summary, sort, display mode). |
+| `add_to_collection` | `rating_key`, `item_rating_keys` | Add items to a regular collection. |
+| `remove_from_collection` | `rating_key`, `item_rating_keys` | Remove items from a regular collection. |
+| `delete_collection` | `rating_key` | Delete a collection (does not affect the media items). |
+
+### Playlists
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
 | `get_playlists` | (none) | List all playlists on the server. |
 | `get_playlist_items` | `rating_key` | Get items in a playlist. |
+
+### Watch State
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `mark_watched` | `rating_key` | Mark a movie, episode, or track as fully watched. |
+| `mark_unwatched` | `rating_key` | Mark an item as unwatched, resetting progress. |
+| `remove_from_continue_watching` | `rating_key` | Remove a movie or episode from Continue Watching / On Deck. |
+| `set_playback_progress` | `rating_key`, `progress_ms` | Set playback position in milliseconds (must be > 0). |
 
 ### Management
 

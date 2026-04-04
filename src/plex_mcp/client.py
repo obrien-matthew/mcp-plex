@@ -1,20 +1,21 @@
 """Thin wrapper over plexapi with input validation and clean error handling."""
 
 import sys
-from typing import NoReturn
+from typing import Any, NoReturn
 
 from plexapi.exceptions import BadRequest, NotFound, Unauthorized
 
 from .auth import get_plex_server
 from .formatting import (
     format_collection,
+    format_collection_detailed,
     format_library,
     format_media_item,
     format_media_item_detailed,
     format_playlist,
     format_season,
 )
-from .validation import validate_limit, validate_rating_key
+from .validation import validate_limit, validate_rating_key, validate_rating_keys
 
 
 class PlexError(Exception):
@@ -145,7 +146,7 @@ class PlexClient:
 
     # -- Shows --
 
-    def _fetch_item(self, rating_key: str, action: str) -> object:
+    def _fetch_item(self, rating_key: str, action: str) -> Any:
         """Fetch an item by rating key, raising PlexError if not found."""
         item = self._plex.fetchItem(int(rating_key))
         if item is None:
@@ -161,7 +162,7 @@ class PlexClient:
                     f"Item {rating_key} is not a TV show"
                     f" (type: {getattr(show, 'type', 'unknown')})"
                 )
-            return [format_season(s) for s in show.seasons()]  # type: ignore[union-attr]
+            return [format_season(s) for s in show.seasons()]
         except (NotFound, BadRequest, Unauthorized) as e:
             self._handle_error(e, "fetching seasons")
 
@@ -172,10 +173,10 @@ class PlexClient:
             if hasattr(item, "episodes"):
                 # It's a show -- get all episodes or filter by season
                 if season_number > 0:
-                    season = item.season(season_number)  # type: ignore[union-attr]
+                    season = item.season(season_number)
                     episodes = season.episodes()
                 else:
-                    episodes = item.episodes()  # type: ignore[union-attr]
+                    episodes = item.episodes()
             else:
                 raise PlexError(
                     f"Item {rating_key} is not a show or season"
@@ -195,6 +196,128 @@ class PlexClient:
         except (NotFound, BadRequest, Unauthorized) as e:
             self._handle_error(e, "fetching collections")
 
+    def get_collection_items(self, rating_key: str) -> dict:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            collection = self._fetch_item(rating_key, "fetching collection items")
+            if getattr(collection, "type", None) != "collection":
+                raise PlexError(
+                    f"Item {rating_key} is not a collection"
+                    f" (type: {getattr(collection, 'type', 'unknown')})"
+                )
+            detail = format_collection_detailed(collection)
+            detail["items"] = [format_media_item(item) for item in collection.items()]
+            return detail
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "fetching collection items")
+
+    def create_collection(
+        self, library_name: str, title: str, rating_keys: list[str]
+    ) -> dict:
+        rating_keys = validate_rating_keys(rating_keys)
+        try:
+            section = self._get_library(library_name)
+            items = [self._plex.fetchItem(int(rk)) for rk in rating_keys]
+            collection = section.createCollection(title=title, items=items)
+            return format_collection_detailed(collection)
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "creating collection")
+
+    def create_smart_collection(
+        self,
+        library_name: str,
+        title: str,
+        filters: dict,
+        libtype: str = "",
+        sort: str = "",
+        limit: int = 0,
+    ) -> dict:
+        try:
+            section = self._get_library(library_name)
+            kwargs: dict = {"title": title, "smart": True, "filters": filters}
+            if libtype:
+                kwargs["libtype"] = libtype
+            if sort:
+                kwargs["sort"] = sort
+            if limit > 0:
+                kwargs["limit"] = limit
+            collection = section.createCollection(**kwargs)
+            return format_collection_detailed(collection)
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "creating smart collection")
+
+    def edit_collection(
+        self,
+        rating_key: str,
+        title: str = "",
+        summary: str | None = None,
+        sort_order: str = "",
+        mode: str = "",
+    ) -> dict:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            collection = self._fetch_item(rating_key, "editing collection")
+            if getattr(collection, "type", None) != "collection":
+                raise PlexError(f"Item {rating_key} is not a collection")
+            if title:
+                collection.editTitle(title)
+            if summary is not None:
+                collection.editSummary(summary)
+            if sort_order:
+                collection.sortUpdate(sort_order)
+            if mode:
+                collection.modeUpdate(mode)
+            collection.reload()
+            return format_collection_detailed(collection)
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "editing collection")
+
+    def add_to_collection(self, rating_key: str, item_rating_keys: list[str]) -> dict:
+        rating_key = validate_rating_key(rating_key)
+        item_rating_keys = validate_rating_keys(item_rating_keys)
+        try:
+            collection = self._fetch_item(rating_key, "adding to collection")
+            if getattr(collection, "type", None) != "collection":
+                raise PlexError(f"Item {rating_key} is not a collection")
+            if getattr(collection, "smart", False):
+                raise PlexError("Cannot manually add items to a smart collection")
+            items = [self._plex.fetchItem(int(rk)) for rk in item_rating_keys]
+            collection.addItems(items)
+            collection.reload()
+            return format_collection_detailed(collection)
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "adding to collection")
+
+    def remove_from_collection(
+        self, rating_key: str, item_rating_keys: list[str]
+    ) -> dict:
+        rating_key = validate_rating_key(rating_key)
+        item_rating_keys = validate_rating_keys(item_rating_keys)
+        try:
+            collection = self._fetch_item(rating_key, "removing from collection")
+            if getattr(collection, "type", None) != "collection":
+                raise PlexError(f"Item {rating_key} is not a collection")
+            if getattr(collection, "smart", False):
+                raise PlexError("Cannot manually remove items from a smart collection")
+            items = [self._plex.fetchItem(int(rk)) for rk in item_rating_keys]
+            collection.removeItems(items)
+            collection.reload()
+            return format_collection_detailed(collection)
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "removing from collection")
+
+    def delete_collection(self, rating_key: str) -> str:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            collection = self._fetch_item(rating_key, "deleting collection")
+            if getattr(collection, "type", None) != "collection":
+                raise PlexError(f"Item {rating_key} is not a collection")
+            title = getattr(collection, "title", rating_key)
+            collection.delete()
+            return f"Collection '{title}' deleted."
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "deleting collection")
+
     def get_playlists(self) -> list[dict]:
         try:
             playlists = self._plex.playlists()
@@ -211,9 +334,75 @@ class PlexClient:
                     f"Item {rating_key} is not a playlist"
                     f" (type: {getattr(playlist, 'type', 'unknown')})"
                 )
-            return [format_media_item(item) for item in playlist.items()]  # type: ignore[union-attr]
+            return [format_media_item(item) for item in playlist.items()]
         except (NotFound, BadRequest, Unauthorized) as e:
             self._handle_error(e, "fetching playlist items")
+
+    # -- Watch State --
+
+    def mark_watched(self, rating_key: str) -> str:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            item = self._fetch_item(rating_key, "marking watched")
+            if not hasattr(item, "markWatched"):
+                raise PlexError(
+                    f"Item {rating_key} does not support watch state"
+                    f" (type: {getattr(item, 'type', 'unknown')})"
+                )
+            item.markWatched()
+            return f"Marked '{getattr(item, 'title', rating_key)}' as watched."
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "marking watched")
+
+    def mark_unwatched(self, rating_key: str) -> str:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            item = self._fetch_item(rating_key, "marking unwatched")
+            if not hasattr(item, "markUnwatched"):
+                raise PlexError(
+                    f"Item {rating_key} does not support watch state"
+                    f" (type: {getattr(item, 'type', 'unknown')})"
+                )
+            item.markUnwatched()
+            return f"Marked '{getattr(item, 'title', rating_key)}' as unwatched."
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "marking unwatched")
+
+    def remove_from_continue_watching(self, rating_key: str) -> str:
+        rating_key = validate_rating_key(rating_key)
+        try:
+            item = self._fetch_item(rating_key, "removing from continue watching")
+            if not hasattr(item, "removeFromContinueWatching"):
+                raise PlexError(
+                    f"Item {rating_key} does not support continue watching removal"
+                    f" (type: {getattr(item, 'type', 'unknown')})"
+                )
+            item.removeFromContinueWatching()
+            title = getattr(item, "title", rating_key)
+            return f"Removed '{title}' from continue watching."
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "removing from continue watching")
+
+    def set_playback_progress(self, rating_key: str, progress_ms: int) -> str:
+        rating_key = validate_rating_key(rating_key)
+        if progress_ms <= 0:
+            raise ValueError(
+                "progress_ms must be > 0. Use mark_unwatched to reset progress."
+            )
+        try:
+            item = self._fetch_item(rating_key, "setting playback progress")
+            if not hasattr(item, "updateProgress"):
+                raise PlexError(
+                    f"Item {rating_key} does not support playback progress"
+                    f" (type: {getattr(item, 'type', 'unknown')})"
+                )
+            item.updateProgress(progress_ms, state="stopped")
+            return (
+                f"Set playback progress for '{getattr(item, 'title', rating_key)}'"
+                f" to {progress_ms}ms."
+            )
+        except (NotFound, BadRequest, Unauthorized) as e:
+            self._handle_error(e, "setting playback progress")
 
     # -- Management --
 

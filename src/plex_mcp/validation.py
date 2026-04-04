@@ -9,6 +9,13 @@ def validate_rating_key(value: str) -> str:
     return value
 
 
+def validate_rating_keys(values: list[str]) -> list[str]:
+    """Validate a list of Plex rating keys."""
+    if not values:
+        raise ValueError("At least one rating key is required.")
+    return [validate_rating_key(v) for v in values]
+
+
 def validate_limit(value: int, max_val: int = 50) -> int:
     """Clamp a limit parameter to the range [1, max_val]."""
     return max(1, min(value, max_val))

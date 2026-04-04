@@ -205,8 +205,40 @@ def format_playlist(playlist: Any) -> dict:
 
 def format_collection(collection: Any) -> dict:
     """Format a collection for listing."""
-    return {
+    result = {
         "title": str(_safe_attr(collection, "title", "")),
+        "smart": bool(_safe_attr(collection, "smart", False)),
         "item_count": _safe_attr(collection, "childCount"),
         "rating_key": str(_safe_attr(collection, "ratingKey", "")),
     }
+    summary = _safe_attr(collection, "summary")
+    if summary:
+        result["summary"] = str(summary)
+    return result
+
+
+def format_collection_detailed(collection: Any) -> dict:
+    """Format a collection with full detail."""
+    result = format_collection(collection)
+    mode_map = {
+        -1: "default",
+        0: "default",
+        1: "hide",
+        2: "hideItems",
+        3: "showItems",
+    }
+    mode_val = _safe_attr(collection, "collectionMode")
+    if mode_val is not None:
+        result["mode"] = mode_map.get(mode_val, "default")
+    else:
+        result["mode"] = "default"
+    sort_map = {0: "release", 1: "alpha", 2: "custom"}
+    sort_val = _safe_attr(collection, "collectionSort")
+    if sort_val is not None:
+        result["sort"] = sort_map.get(sort_val, "release")
+    else:
+        result["sort"] = "release"
+    labels = _safe_attr(collection, "labels", [])
+    if labels:
+        result["labels"] = [str(lab.tag) for lab in labels]
+    return result

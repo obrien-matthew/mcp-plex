@@ -176,11 +176,200 @@ def get_episodes(rating_key: str, season_number: int = 0) -> str:
 def get_collections(library_name: str) -> str:
     """List collections in a Plex library.
 
-    Returns collection names, item counts, and rating keys.
+    Returns collection names, types (smart/regular), item counts, and
+    rating keys. Use get_collection_items to see the contents.
     """
     try:
         results = _get_client().get_collections(library_name)
         return json.dumps(results, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def get_collection_items(rating_key: str) -> str:
+    """Get the items in a Plex collection with full collection details.
+
+    Provide the rating_key of a collection. Returns collection metadata
+    (title, smart, mode, sort, labels) and the media items it contains.
+    """
+    try:
+        result = _get_client().get_collection_items(rating_key)
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def create_collection(library_name: str, title: str, rating_keys: list[str]) -> str:
+    """Create a new regular collection in a Plex library.
+
+    library_name: exact library name (e.g. "Movies").
+    title: name for the collection.
+    rating_keys: list of rating keys for items to include.
+    """
+    try:
+        result = _get_client().create_collection(library_name, title, rating_keys)
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def create_smart_collection(
+    library_name: str,
+    title: str,
+    filters: dict,
+    libtype: str = "",
+    sort: str = "",
+    limit: int = 0,
+) -> str:
+    """Create a smart (filter-based) collection that auto-updates.
+
+    library_name: exact library name (e.g. "Movies").
+    title: name for the collection.
+    filters: dict of field/value pairs with optional operators.
+      Operators are appended to the key:
+        ">>" = greater than, "<<" = less than, "!" = not.
+      Examples:
+        {"genre": "Action"} -- genre is Action
+        {"year>>": 2000} -- year greater than 2000
+        {"genre!": "Horror"} -- genre is not Horror
+        {"genre": "Action", "year>>": 2000} -- both conditions
+      Common fields: genre, year, decade, rating, audienceRating,
+        contentRating, resolution, studio, label, director, actor.
+    libtype: content type to filter (required for show libraries).
+      "movie", "show", "episode", "season", "artist", "album", "track".
+    sort: sort order (e.g. "titleSort", "year:desc", "rating:desc").
+    limit: max items (0 = unlimited).
+    """
+    try:
+        result = _get_client().create_smart_collection(
+            library_name, title, filters, libtype, sort, limit
+        )
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def edit_collection(
+    rating_key: str,
+    title: str = "",
+    summary: str | None = None,
+    sort_order: str = "",
+    mode: str = "",
+) -> str:
+    """Edit a collection's metadata.
+
+    rating_key: the collection's rating key.
+    title: new title (empty = no change).
+    summary: new summary (None = no change, empty string = clear).
+    sort_order: "release", "alpha", or "custom" (empty = no change).
+    mode: "default", "hide", "hideItems", or "showItems" (empty = no change).
+    """
+    try:
+        result = _get_client().edit_collection(
+            rating_key, title, summary, sort_order, mode
+        )
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> str:
+    """Add items to a regular (non-smart) collection.
+
+    rating_key: the collection's rating key.
+    item_rating_keys: list of rating keys for items to add.
+    """
+    try:
+        result = _get_client().add_to_collection(rating_key, item_rating_keys)
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def remove_from_collection(rating_key: str, item_rating_keys: list[str]) -> str:
+    """Remove items from a regular (non-smart) collection.
+
+    rating_key: the collection's rating key.
+    item_rating_keys: list of rating keys for items to remove.
+    """
+    try:
+        result = _get_client().remove_from_collection(rating_key, item_rating_keys)
+        return json.dumps(result, indent=2)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def delete_collection(rating_key: str) -> str:
+    """Delete a collection from the Plex library.
+
+    This permanently removes the collection. The media items themselves
+    are not affected.
+    """
+    try:
+        return _get_client().delete_collection(rating_key)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+# ---------------------------------------------------------------------------
+# Watch State
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def mark_watched(rating_key: str) -> str:
+    """Mark a media item as fully watched.
+
+    Works on movies, episodes, and tracks.
+    """
+    try:
+        return _get_client().mark_watched(rating_key)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def mark_unwatched(rating_key: str) -> str:
+    """Mark a media item as unwatched, resetting its watch progress.
+
+    Works on movies, episodes, and tracks.
+    """
+    try:
+        return _get_client().mark_unwatched(rating_key)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def remove_from_continue_watching(rating_key: str) -> str:
+    """Remove a partially-watched item from the Continue Watching / On Deck list.
+
+    Only works on movies and episodes. Does not change the item's
+    watched/unwatched state.
+    """
+    try:
+        return _get_client().remove_from_continue_watching(rating_key)
+    except (PlexError, ValueError) as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def set_playback_progress(rating_key: str, progress_ms: int) -> str:
+    """Set the playback progress for a media item to a specific position.
+
+    rating_key: the item's rating key.
+    progress_ms: position in milliseconds (must be > 0).
+      To reset progress to zero, use mark_unwatched instead.
+    """
+    try:
+        return _get_client().set_playback_progress(rating_key, progress_ms)
     except (PlexError, ValueError) as e:
         return f"Error: {e}"
 
