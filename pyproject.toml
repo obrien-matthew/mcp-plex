@@ -52,4 +52,4 @@ venvPath = "."
 venv = ".venv"
 
 [project.scripts]
-mcp-plex = "plex_mcp:main"
+mcp-plex-server = "plex_mcp:main"

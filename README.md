@@ -41,7 +41,7 @@ export PLEX_TOKEN="your_plex_token"
 ### 4. Test the Connection
 
 ```bash
-uv run mcp-plex
+uv run mcp-plex-server
 ```
 
 The server connects to your Plex server on startup and verifies the token. If the connection fails, check that your server URL and token are correct.
@@ -55,7 +55,7 @@ Add to your MCP server config. If installed from PyPI:
   "mcpServers": {
     "plex": {
       "command": "uvx",
-      "args": ["mcp-plex"],
+      "args": ["mcp-plex-server"],
       "env": {
         "PLEX_SERVER_URL": "http://your-plex-server:32400",
         "PLEX_TOKEN": "your_plex_token"
@@ -72,7 +72,7 @@ Or if running from a local clone:
   "mcpServers": {
     "plex": {
       "command": "uv",
-      "args": ["--directory", "/path/to/mcp-plex", "run", "mcp-plex"],
+      "args": ["--directory", "/path/to/mcp-plex", "run", "mcp-plex-server"],
       "env": {
         "PLEX_SERVER_URL": "http://your-plex-server:32400",
         "PLEX_TOKEN": "your_plex_token"
@@ -125,7 +125,7 @@ Or if running from a local clone:
 ## Development
 
 ```bash
-uv run mcp-plex              # Run the server
+uv run mcp-plex-server              # Run the server
 uv run ruff check src/       # Lint
 uv run ruff format src/      # Format
 uv run pyright src/          # Type check
