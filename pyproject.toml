@@ -1,6 +1,6 @@
 [project]
 name = "mcp-plex-server"
-version = "0.1.7"
+version = "0.1.8"
 description = "MCP server for Plex media discovery, search, and library management"
 readme = "README.md"
 license = "MIT"
