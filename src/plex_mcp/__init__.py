@@ -1,3 +1,5 @@
+"""MCP server for Plex media discovery, search, and library management."""
+
 from .server import mcp
 
 
