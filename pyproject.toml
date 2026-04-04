@@ -36,7 +36,8 @@ build-backend = "uv_build"
 dev = [
     "ruff>=0.11.0",
     "pyright>=1.1.400",
-    "pytest>=9.0.2",
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
 ]
 
 [tool.ruff]
@@ -54,6 +55,10 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["plex_mcp"]
+omit = ["src/plex_mcp/auth.py"]
 
 [project.scripts]
 mcp-plex-server = "plex_mcp:main"

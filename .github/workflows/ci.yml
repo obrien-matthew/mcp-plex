@@ -43,4 +43,4 @@ jobs:
       - run: uv sync --frozen
 
       - name: Run tests
-        run: uv run pytest tests/ -v
+        run: uv run pytest tests/ --cov=plex_mcp --cov-report=term-missing --cov-fail-under=80

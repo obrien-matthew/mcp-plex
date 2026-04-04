@@ -15,9 +15,15 @@ dist/
 # Environment / credentials
 .env
 
+# Test / coverage
+.coverage
+htmlcov/
+
 # Claude Code
 .claude/
 
+# Plans (local working docs)
+docs/plans/
+
 # OS
 .DS_Store
-docs/plans/
