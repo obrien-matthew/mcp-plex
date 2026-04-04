@@ -78,9 +78,9 @@ class PlexClient:
         try:
             if library_name:
                 section = self._get_library(library_name)
-                items = section.recentlyAdded(maxresults=limit)
+                items = section.recentlyAdded()[:limit]
             else:
-                items = self._plex.library.recentlyAdded(maxresults=limit)
+                items = self._plex.library.recentlyAdded()[:limit]
             return [format_media_item(item) for item in items]
         except (NotFound, BadRequest, Unauthorized) as e:
             self._handle_error(e, "fetching recently added")
@@ -88,7 +88,7 @@ class PlexClient:
     def get_on_deck(self, limit: int = 10) -> list[dict]:
         limit = validate_limit(limit)
         try:
-            items = self._plex.library.onDeck(maxresults=limit)
+            items = self._plex.library.onDeck()[:limit]
             return [format_media_item(item) for item in items]
         except (NotFound, BadRequest, Unauthorized) as e:
             self._handle_error(e, "fetching on deck")
