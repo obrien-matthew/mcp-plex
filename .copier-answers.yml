@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+_commit: v0.1.0
+_src_path: gh:obrien-matthew/mcp-template
+author_email: obrien.mlotwis@gmail.com
+author_name: Matthew O'Brien
+coverage_threshold: 50
+github_org: obrien-matthew
+package_name: mcp-plex-server
+service_dependency: plexapi>=4.16.0
+service_name: Plex
+service_slug: plex
+topic_classifier: "Topic :: Multimedia :: Video"
