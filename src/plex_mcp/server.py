@@ -1,12 +1,23 @@
 """MCP server with Plex tools for media discovery, search, and library management."""
 
 import json
+from importlib.metadata import PackageNotFoundError, version
 
 from mcp.server.fastmcp import FastMCP
 
 from .client import PlexClient, PlexError
 
 mcp = FastMCP("mcp-plex")
+
+
+@mcp.tool()
+def get_server_version() -> str:
+    """Return the installed version of the mcp-plex-server package."""
+    try:
+        return version("mcp-plex-server")
+    except PackageNotFoundError:
+        return "unknown"
+
 
 _client: PlexClient | None = None
 

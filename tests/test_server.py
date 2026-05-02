@@ -7,6 +7,7 @@ These mock PlexClient entirely and verify:
 """
 
 import json
+from importlib.metadata import version
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -265,3 +266,13 @@ class TestScanLibraryTool:
         mock_client.scan_library.return_value = "Library scan started."
         result = server_mod.scan_library("Movies")
         assert "scan started" in result
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics
+# ---------------------------------------------------------------------------
+
+
+class TestGetServerVersionTool:
+    def test_returns_installed_version(self):
+        assert server_mod.get_server_version() == version("mcp-plex-server")
