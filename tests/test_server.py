@@ -2,11 +2,12 @@
 
 These mock PlexClient entirely and verify:
 - Tools delegate to the correct client method with correct args
-- Return values are JSON-serialized
-- PlexError / ValueError are caught and returned as error strings
+- Data tools return real dicts/lists (no json.dumps wrapping)
+- Data tools propagate PlexError / ValueError so FastMCP can render them
+  as MCP error responses
+- Action/status tools catch exceptions and return "Error: ..." strings
 """
 
-import json
 from importlib.metadata import version
 from unittest.mock import MagicMock, patch
 
@@ -31,35 +32,34 @@ def mock_client():
 
 
 class TestSearchMediaTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.search_media.return_value = [{"title": "Inception"}]
         result = server_mod.search_media("inception")
-        parsed = json.loads(result)
-        assert parsed[0]["title"] == "Inception"
+        assert result[0]["title"] == "Inception"
 
     def test_passes_params(self, mock_client):
         mock_client.search_media.return_value = []
         server_mod.search_media("test", media_type="movie", limit=5)
         mock_client.search_media.assert_called_once_with("test", "movie", 5)
 
-    def test_error_returns_string(self, mock_client):
+    def test_error_propagates(self, mock_client):
         mock_client.search_media.side_effect = PlexError("fail")
-        result = server_mod.search_media("test")
-        assert result.startswith("Error:")
+        with pytest.raises(PlexError):
+            server_mod.search_media("test")
 
 
 class TestGetRecentlyAddedTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_recently_added.return_value = [{"title": "New"}]
         result = server_mod.get_recently_added()
-        assert json.loads(result)[0]["title"] == "New"
+        assert result[0]["title"] == "New"
 
 
 class TestGetOnDeckTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_on_deck.return_value = [{"title": "Continue"}]
         result = server_mod.get_on_deck()
-        assert json.loads(result)[0]["title"] == "Continue"
+        assert result[0]["title"] == "Continue"
 
 
 # ---------------------------------------------------------------------------
@@ -68,10 +68,10 @@ class TestGetOnDeckTool:
 
 
 class TestGetLibrariesTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_libraries.return_value = [{"title": "Movies"}]
         result = server_mod.get_libraries()
-        assert json.loads(result)[0]["title"] == "Movies"
+        assert result[0]["title"] == "Movies"
 
 
 class TestGetLibraryContentsTool:
@@ -84,17 +84,17 @@ class TestGetLibraryContentsTool:
 
 
 class TestGetMediaDetailsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_dict(self, mock_client):
         mock_client.get_media_details.return_value = {"title": "Inception"}
         result = server_mod.get_media_details("123")
-        assert json.loads(result)["title"] == "Inception"
+        assert result["title"] == "Inception"
 
 
 class TestGetLibraryStatsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_dict(self, mock_client):
         mock_client.get_library_stats.return_value = {"total_items": 500}
         result = server_mod.get_library_stats("Movies")
-        assert json.loads(result)["total_items"] == 500
+        assert result["total_items"] == 500
 
 
 # ---------------------------------------------------------------------------
@@ -103,10 +103,10 @@ class TestGetLibraryStatsTool:
 
 
 class TestGetSeasonsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_seasons.return_value = [{"season_number": 1}]
         result = server_mod.get_seasons("100")
-        assert json.loads(result)[0]["season_number"] == 1
+        assert result[0]["season_number"] == 1
 
 
 class TestGetEpisodesTool:
@@ -122,21 +122,20 @@ class TestGetEpisodesTool:
 
 
 class TestGetCollectionsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_collections.return_value = [{"title": "Marvel"}]
         result = server_mod.get_collections("Movies")
-        assert json.loads(result)[0]["title"] == "Marvel"
+        assert result[0]["title"] == "Marvel"
 
 
 class TestGetCollectionItemsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_dict(self, mock_client):
         mock_client.get_collection_items.return_value = {
             "title": "Marvel",
             "items": [{"title": "Iron Man"}],
         }
         result = server_mod.get_collection_items("100")
-        parsed = json.loads(result)
-        assert parsed["items"][0]["title"] == "Iron Man"
+        assert result["items"][0]["title"] == "Iron Man"
 
 
 class TestCreateCollectionTool:
@@ -243,17 +242,17 @@ class TestSetPlaybackProgressTool:
 
 
 class TestGetPlaylistsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_playlists.return_value = [{"title": "My List"}]
         result = server_mod.get_playlists()
-        assert json.loads(result)[0]["title"] == "My List"
+        assert result[0]["title"] == "My List"
 
 
 class TestGetPlaylistItemsTool:
-    def test_returns_json(self, mock_client):
+    def test_returns_list(self, mock_client):
         mock_client.get_playlist_items.return_value = [{"title": "Item"}]
         result = server_mod.get_playlist_items("50")
-        assert json.loads(result)[0]["title"] == "Item"
+        assert result[0]["title"] == "Item"
 
 
 # ---------------------------------------------------------------------------

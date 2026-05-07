@@ -1,6 +1,13 @@
-"""MCP server with Plex tools for media discovery, search, and library management."""
+"""MCP server with Plex tools for media discovery, search, and library management.
 
-import json
+Tool return-type conventions:
+- Data tools return real `dict` or `list[dict]` so FastMCP serializes them as
+  proper structured content (no json.dumps wrapping).
+- Action/status tools return human-readable `str` confirmations.
+- Errors are raised as exceptions; FastMCP translates them into MCP error
+  responses with `isError=true`.
+"""
+
 from importlib.metadata import PackageNotFoundError, version
 
 from mcp.server.fastmcp import FastMCP
@@ -35,7 +42,7 @@ def _get_client() -> PlexClient:
 
 
 @mcp.tool()
-def search_media(query: str, media_type: str = "", limit: int = 20) -> str:
+def search_media(query: str, media_type: str = "", limit: int = 20) -> list[dict]:
     """Search for media across all Plex libraries.
 
     Searches movies, shows, music, and other media by title.
@@ -45,38 +52,26 @@ def search_media(query: str, media_type: str = "", limit: int = 20) -> str:
 
     Returns titles, years, ratings, and rating keys for further lookup.
     """
-    try:
-        results = _get_client().search_media(query, media_type, limit)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().search_media(query, media_type, limit)
 
 
 @mcp.tool()
-def get_recently_added(limit: int = 20, library_name: str = "") -> str:
+def get_recently_added(limit: int = 20, library_name: str = "") -> list[dict]:
     """Get recently added media from Plex.
 
     Returns the most recently added items across all libraries, or
     filtered to a specific library by name (e.g. "Movies", "TV Shows").
     """
-    try:
-        results = _get_client().get_recently_added(limit, library_name)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_recently_added(limit, library_name)
 
 
 @mcp.tool()
-def get_on_deck(limit: int = 10) -> str:
+def get_on_deck(limit: int = 10) -> list[dict]:
     """Get the "On Deck" continue-watching list from Plex.
 
     Returns items that are partially watched or next episodes in a series.
     """
-    try:
-        results = _get_client().get_on_deck(limit)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_on_deck(limit)
 
 
 # ---------------------------------------------------------------------------
@@ -85,23 +80,19 @@ def get_on_deck(limit: int = 10) -> str:
 
 
 @mcp.tool()
-def get_libraries() -> str:
+def get_libraries() -> list[dict]:
     """List all library sections on the Plex server.
 
     Returns library names, types (movie, show, artist), item counts, and
     last updated timestamps.
     """
-    try:
-        results = _get_client().get_libraries()
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_libraries()
 
 
 @mcp.tool()
 def get_library_contents(
     library_name: str, sort: str = "titleSort", limit: int = 50
-) -> str:
+) -> list[dict]:
     """Browse the contents of a specific Plex library.
 
     library_name must match exactly (e.g. "Movies", "TV Shows").
@@ -110,39 +101,27 @@ def get_library_contents(
     Sort options: "titleSort" (default), "addedAt:desc", "year:desc",
     "rating:desc", "audienceRating:desc".
     """
-    try:
-        results = _get_client().get_library_contents(library_name, sort, limit)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_library_contents(library_name, sort, limit)
 
 
 @mcp.tool()
-def get_media_details(rating_key: str) -> str:
+def get_media_details(rating_key: str) -> dict:
     """Get detailed information about a specific media item.
 
     Use the rating_key from search or browse results. Returns full
     details including summary, genres, cast, directors, and ratings.
     """
-    try:
-        result = _get_client().get_media_details(rating_key)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_media_details(rating_key)
 
 
 @mcp.tool()
-def get_library_stats(library_name: str = "") -> str:
+def get_library_stats(library_name: str = "") -> dict | list[dict]:
     """Get statistics for Plex libraries.
 
     Without library_name: returns item counts for all libraries.
     With library_name: returns detailed stats for that library.
     """
-    try:
-        result = _get_client().get_library_stats(library_name)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_library_stats(library_name)
 
 
 # ---------------------------------------------------------------------------
@@ -151,31 +130,23 @@ def get_library_stats(library_name: str = "") -> str:
 
 
 @mcp.tool()
-def get_seasons(rating_key: str) -> str:
+def get_seasons(rating_key: str) -> list[dict]:
     """Get the seasons of a TV show.
 
     Provide the rating_key of a show (from search or browse). Returns
     season numbers, episode counts, and rating keys.
     """
-    try:
-        results = _get_client().get_seasons(rating_key)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_seasons(rating_key)
 
 
 @mcp.tool()
-def get_episodes(rating_key: str, season_number: int = 0) -> str:
+def get_episodes(rating_key: str, season_number: int = 0) -> list[dict]:
     """Get episodes for a TV show or season.
 
     Provide the rating_key of a show. Optionally filter by season_number
     (0 = all seasons). Returns episode titles, numbers, and durations.
     """
-    try:
-        results = _get_client().get_episodes(rating_key, season_number)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_episodes(rating_key, season_number)
 
 
 # ---------------------------------------------------------------------------
@@ -184,46 +155,34 @@ def get_episodes(rating_key: str, season_number: int = 0) -> str:
 
 
 @mcp.tool()
-def get_collections(library_name: str) -> str:
+def get_collections(library_name: str) -> list[dict]:
     """List collections in a Plex library.
 
     Returns collection names, types (smart/regular), item counts, and
     rating keys. Use get_collection_items to see the contents.
     """
-    try:
-        results = _get_client().get_collections(library_name)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_collections(library_name)
 
 
 @mcp.tool()
-def get_collection_items(rating_key: str) -> str:
+def get_collection_items(rating_key: str) -> dict:
     """Get the items in a Plex collection with full collection details.
 
     Provide the rating_key of a collection. Returns collection metadata
     (title, smart, mode, sort, labels) and the media items it contains.
     """
-    try:
-        result = _get_client().get_collection_items(rating_key)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_collection_items(rating_key)
 
 
 @mcp.tool()
-def create_collection(library_name: str, title: str, rating_keys: list[str]) -> str:
+def create_collection(library_name: str, title: str, rating_keys: list[str]) -> dict:
     """Create a new regular collection in a Plex library.
 
     library_name: exact library name (e.g. "Movies").
     title: name for the collection.
     rating_keys: list of rating keys for items to include.
     """
-    try:
-        result = _get_client().create_collection(library_name, title, rating_keys)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().create_collection(library_name, title, rating_keys)
 
 
 @mcp.tool()
@@ -234,7 +193,7 @@ def create_smart_collection(
     libtype: str = "",
     sort: str = "",
     limit: int = 0,
-) -> str:
+) -> dict:
     """Create a smart (filter-based) collection that auto-updates.
 
     library_name: exact library name (e.g. "Movies").
@@ -254,13 +213,9 @@ def create_smart_collection(
     sort: sort order (e.g. "titleSort", "year:desc", "rating:desc").
     limit: max items (0 = unlimited).
     """
-    try:
-        result = _get_client().create_smart_collection(
-            library_name, title, filters, libtype, sort, limit
-        )
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().create_smart_collection(
+        library_name, title, filters, libtype, sort, limit
+    )
 
 
 @mcp.tool()
@@ -270,7 +225,7 @@ def edit_collection(
     summary: str | None = None,
     sort_order: str = "",
     mode: str = "",
-) -> str:
+) -> dict:
     """Edit a collection's metadata.
 
     rating_key: the collection's rating key.
@@ -279,41 +234,27 @@ def edit_collection(
     sort_order: "release", "alpha", or "custom" (empty = no change).
     mode: "default", "hide", "hideItems", or "showItems" (empty = no change).
     """
-    try:
-        result = _get_client().edit_collection(
-            rating_key, title, summary, sort_order, mode
-        )
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().edit_collection(rating_key, title, summary, sort_order, mode)
 
 
 @mcp.tool()
-def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> str:
+def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> dict:
     """Add items to a regular (non-smart) collection.
 
     rating_key: the collection's rating key.
     item_rating_keys: list of rating keys for items to add.
     """
-    try:
-        result = _get_client().add_to_collection(rating_key, item_rating_keys)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().add_to_collection(rating_key, item_rating_keys)
 
 
 @mcp.tool()
-def remove_from_collection(rating_key: str, item_rating_keys: list[str]) -> str:
+def remove_from_collection(rating_key: str, item_rating_keys: list[str]) -> dict:
     """Remove items from a regular (non-smart) collection.
 
     rating_key: the collection's rating key.
     item_rating_keys: list of rating keys for items to remove.
     """
-    try:
-        result = _get_client().remove_from_collection(rating_key, item_rating_keys)
-        return json.dumps(result, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().remove_from_collection(rating_key, item_rating_keys)
 
 
 @mcp.tool()
@@ -386,30 +327,22 @@ def set_playback_progress(rating_key: str, progress_ms: int) -> str:
 
 
 @mcp.tool()
-def get_playlists() -> str:
+def get_playlists() -> list[dict]:
     """List all playlists on the Plex server.
 
     Returns playlist names, types, item counts, and durations.
     """
-    try:
-        results = _get_client().get_playlists()
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_playlists()
 
 
 @mcp.tool()
-def get_playlist_items(rating_key: str) -> str:
+def get_playlist_items(rating_key: str) -> list[dict]:
     """Get the items in a Plex playlist.
 
     Provide the rating_key of a playlist. Returns the media items
     contained in the playlist.
     """
-    try:
-        results = _get_client().get_playlist_items(rating_key)
-        return json.dumps(results, indent=2)
-    except (PlexError, ValueError) as e:
-        return f"Error: {e}"
+    return _get_client().get_playlist_items(rating_key)
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +358,6 @@ def scan_library(library_name: str) -> str:
     The scan runs in the background on the server.
     """
     try:
-        result = _get_client().scan_library(library_name)
-        return result
+        return _get_client().scan_library(library_name)
     except (PlexError, ValueError) as e:
         return f"Error: {e}"
