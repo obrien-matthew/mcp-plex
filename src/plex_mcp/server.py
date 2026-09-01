@@ -9,6 +9,7 @@ Tool return-type conventions:
 """
 
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -105,7 +106,7 @@ def get_library_contents(
 
 
 @mcp.tool()
-def get_media_details(rating_key: str) -> dict:
+def get_media_details(rating_key: str) -> dict[str, Any]:
     """Get detailed information about a specific media item.
 
     Use the rating_key from search or browse results. Returns full
@@ -165,7 +166,7 @@ def get_collections(library_name: str) -> list[dict]:
 
 
 @mcp.tool()
-def get_collection_items(rating_key: str) -> dict:
+def get_collection_items(rating_key: str) -> dict[str, Any]:
     """Get the items in a Plex collection with full collection details.
 
     Provide the rating_key of a collection. Returns collection metadata
@@ -175,7 +176,9 @@ def get_collection_items(rating_key: str) -> dict:
 
 
 @mcp.tool()
-def create_collection(library_name: str, title: str, rating_keys: list[str]) -> dict:
+def create_collection(
+    library_name: str, title: str, rating_keys: list[str]
+) -> dict[str, Any]:
     """Create a new regular collection in a Plex library.
 
     library_name: exact library name (e.g. "Movies").
@@ -193,7 +196,7 @@ def create_smart_collection(
     libtype: str = "",
     sort: str = "",
     limit: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """Create a smart (filter-based) collection that auto-updates.
 
     library_name: exact library name (e.g. "Movies").
@@ -225,7 +228,7 @@ def edit_collection(
     summary: str | None = None,
     sort_order: str = "",
     mode: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Edit a collection's metadata.
 
     rating_key: the collection's rating key.
@@ -238,7 +241,7 @@ def edit_collection(
 
 
 @mcp.tool()
-def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> dict:
+def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> dict[str, Any]:
     """Add items to a regular (non-smart) collection.
 
     rating_key: the collection's rating key.
@@ -248,7 +251,9 @@ def add_to_collection(rating_key: str, item_rating_keys: list[str]) -> dict:
 
 
 @mcp.tool()
-def remove_from_collection(rating_key: str, item_rating_keys: list[str]) -> dict:
+def remove_from_collection(
+    rating_key: str, item_rating_keys: list[str]
+) -> dict[str, Any]:
     """Remove items from a regular (non-smart) collection.
 
     rating_key: the collection's rating key.
