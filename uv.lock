@@ -346,7 +346,7 @@ wheels = [
 
 [[package]]
 name = "mcp-plex-server"
-version = "0.1.9"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
